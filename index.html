@@ -1,0 +1,466 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Friee</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css"
+  />
+  <style>
+    /* Smooth flip transition for cards */
+    .card {
+      cursor: pointer;
+      user-select: none;
+      perspective: 1000px;
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+    }
+    .inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 0.5rem;
+      transition: transform 0.5s;
+      transform-style: preserve-3d;
+    }
+    .flipped .inner {
+      transform: rotateY(180deg);
+    }
+    .front, .back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 0.5rem;
+      backface-visibility: hidden;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgb(0 0 0 / 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgb(200, 71, 71);
+    }
+    .front {
+      background-color: white;
+    }
+    .front img {
+      width: 95%;
+      height: 95%;
+      object-fit: contain;
+      user-select: none;
+      pointer-events: none;
+    }
+    .back {
+      transform: rotateY(180deg);
+    }
+    .back img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      border-radius: 0.5rem;
+    }
+    .matched {
+      cursor: default;
+      box-shadow: 0 0 15px 5px rgba(4, 235, 89, 0.7);
+      transform: scale(1.1);
+    }
+
+    /* Container scaling on larger screens */
+    @media (min-width: 1024px) {
+      main {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      #game-board {
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      /* Make cards smaller on large screens so all fit */
+      #game-board > button.card {
+        max-width: 120px;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-r from-pink-300 to-yellow-300 min-h-screen flex flex-col items-center justify-center p-4 font-poppins">
+
+  <header class="mb-6 text-center w-full max-w-3xl flex justify-between items-center px-4 sm:px-0">
+    <div class="flex items-center space-x-3">
+      <img alt="Game logo: colorful puzzle piece icon on purple background" class="w-12 h-12 rounded-md shadow-md" height="48" src="tandayanya.png" width="48" />
+      <h1 class="text-4xl font-extrabold text-purple-700">
+       BAFO Flip
+      </h1>
+    </div>
+    <button aria-label="Exit game" class="text-purple-700 hover:text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded p-2 transition" id="exit-btn" title="Exit game">
+      <i class="fas fa-sign-out-alt fa-2x"></i>
+    </button>
+  </header>
+
+  <main class="w-full max-w-3xl">
+
+    <!-- Description and instructions container -->
+    <section id="intro" class="bg-white rounded-lg shadow-lg p-6 mb-6 text-purple-900">
+      <h2 class="text-2xl font-bold mb-4 text-center">Selamat Datang di BAFO Flip!</h2>
+      <p class="mb-4 text-center">
+        BAFO Flip adalah permainan mencocokkan kartu yang menyenangkan dan menantang. Tugas Anda adalah menemukan pasangan gambar yang sama dengan membalik kartu satu per satu di dalamnya ada berbagai macam makanan khas banjarnegara.
+      </p>
+      <h3 class="text-xl font-semibold mb-2">Petunjuk Penggunaan:</h3>
+      <ul class="list-disc list-inside space-y-2 mb-4">
+        <li>Klik pada kartu untuk membalik dan melihat gambarnya.</li>
+        <li>Cari dan cocokkan dua kartu dengan gambar yang sama.</li>
+        <li>Jika kartu cocok, mereka akan tetap terbuka dan tidak bisa dibalik lagi.</li>
+        <li>Jika tidak cocok, kartu akan kembali tertutup setelah satu detik.</li>
+        <li>Selesaikan semua pasangan dalam waktu 1 menit.</li>
+        <li>Gunakan tombol <span class="font-bold bg-purple-700 text-white rounded px-2 py-1">Restart Game</span> untuk memulai ulang permainan kapan saja.</li>
+        <li>Tombol keluar di pojok kanan atas untuk keluar dari permainan.</li>
+      </ul>
+      <div class="text-center">
+        <button id="start-game-btn" class="bg-purple-700 hover:bg-purple-800 text-white font-bold py-2 px-6 rounded shadow-lg transition focus:outline-none focus:ring-4 focus:ring-purple-400">
+          Mulai Permainan
+        </button>
+      </div>
+    </section>
+
+    <!-- Game container hidden initially -->
+    <section id="game-section" class="hidden">
+      <div class="flex justify-between items-center mb-4 px-2 sm:px-0">
+        <div aria-atomic="true" aria-live="polite" class="text-purple-900 font-bold text-xl select-none" id="timer" role="timer">
+          Time Left: 01:00
+        </div>
+        <button class="bg-purple-700 hover:bg-purple-800 text-white font-bold py-2 px-6 rounded shadow-lg transition focus:outline-none focus:ring-4 focus:ring-purple-400" id="restart-btn">
+          Restart Game
+        </button>
+      </div>
+      <div class="grid grid-cols-4 gap-4 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-4" id="game-board"></div>
+      <div aria-live="polite" class="mt-6 text-center text-purple-900 font-semibold text-xl min-h-[2rem]" id="message"></div>
+    </section>
+
+  </main>
+
+  <footer class="mt-12 text-center text-purple-700 text-sm select-none">
+    @Mudrik2304_
+  </footer>
+
+  <audio id="background-music" loop preload="auto" src="Island Life - Telecasted.mp3"></audio>
+  <audio id="win-sound" preload="auto" src="The Girl from Saint-Anne-des-Plaines - The Mini Vandals.mp3"></audio>
+  <audio id="lose-sound" preload="auto" src="The Girl from Saint-Anne-des-Plaines - The Mini Vandals.mp3"></audio>
+
+  <script>
+    (() => {
+      // Images for the cards - 8 pairs (16 cards total)
+      // Using placehold.co with descriptive alt text for AI generation
+      // Each card has front image (colorful question mark) and back fruit logo image
+      const questionMarkFront = {
+        src: "https://placehold.co/150x150/png?text=%3F&bg=ffcc00&fg=003366&font=bold&font-size=96",
+        alt: "A bright yellow square with a large dark blue bold question mark in the center"
+      };
+
+      const cardsData = [
+        {
+          front: questionMarkFront,
+          back: { src: "carica.jpg", alt: "A bright red apple on a white background" }
+        },
+        {
+          front: questionMarkFront,
+          back: { src: "mendoan.jpg", alt: "A ripe yellow banana on a white background" }
+        },
+        {
+          front: questionMarkFront,
+          back: { src: "dawet.jpg", alt: "A cute green frog sitting on a leaf" }
+        },
+        {
+          front: questionMarkFront,
+          back: { src: "melinjo.jpg", alt: "A big blue whale swimming in the ocean" }
+        },
+        {
+          front: questionMarkFront,
+          back: { src: "nbuntil.jpg", alt: "A fresh orange carrot with green leaves" }
+        },
+        {
+          front: questionMarkFront,
+          back: { src: "pete.jpg", alt: "A bunch of purple grapes on a white background" }
+        },
+        {
+          front: questionMarkFront,
+          back: { src: "salak.jpg", alt: "A teal colored fish swimming in water" }
+        },
+        {
+          front: questionMarkFront,
+          back: { src: "soto.jpg", alt: "A bright pink flower with petals" }
+        }
+      ];
+
+      // Duplicate cards to create pairs
+      let cardImages = [...cardsData, ...cardsData];
+
+      // Shuffle function (Fisher-Yates)
+      function shuffle(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex !== 0) {
+          randomIndex = Math.floor(Math.random() * currentIndex);
+          currentIndex--;
+          [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+      }
+
+      const gameBoard = document.getElementById("game-board");
+      const message = document.getElementById("message");
+      const restartBtn = document.getElementById("restart-btn");
+      const timerDisplay = document.getElementById("timer");
+      const exitBtn = document.getElementById("exit-btn");
+      const backgroundMusic = document.getElementById("background-music");
+      const winSound = document.getElementById("win-sound");
+      const loseSound = document.getElementById("lose-sound");
+
+      const introSection = document.getElementById("intro");
+      const gameSection = document.getElementById("game-section");
+      const startGameBtn = document.getElementById("start-game-btn");
+
+      let firstCard = null;
+      let secondCard = null;
+      let lockBoard = false;
+      let matchedPairs = 0;
+      let timer = null;
+      let timeLeft = 60; // seconds
+      let gameActive = false;
+      let timerStarted = false;
+
+      // Play background music on user interaction (required by some browsers)
+      function tryPlayMusic() {
+        if (backgroundMusic.paused) {
+          backgroundMusic.play().catch(() => {});
+        }
+      }
+
+      // Create card elements
+      function createCard(cardData, index) {
+        const card = document.createElement("button");
+        card.setAttribute("type", "button");
+        card.className = "card";
+        card.setAttribute("aria-label", "Hidden image card");
+        card.setAttribute("aria-pressed", "false");
+        card.dataset.index = index;
+        card.dataset.backSrc = cardData.back.src;
+
+        const inner = document.createElement("div");
+        inner.className = "inner";
+
+        // Front face (colorful question mark)
+        const frontFace = document.createElement("div");
+        frontFace.className = "front";
+        const frontImg = document.createElement("img");
+        frontImg.src = cardData.front.src;
+        frontImg.alt = cardData.front.alt;
+        frontFace.appendChild(frontImg);
+
+        // Back face (fruit image)
+        const backFace = document.createElement("div");
+        backFace.className = "back";
+        const backImg = document.createElement("img");
+        backImg.src = cardData.back.src;
+        backImg.alt = cardData.back.alt;
+        backFace.appendChild(backImg);
+
+        inner.appendChild(frontFace);
+        inner.appendChild(backFace);
+        card.appendChild(inner);
+
+        // Click event to flip card
+        card.addEventListener("click", () => {
+          if (!gameActive) return;
+          if (lockBoard) return;
+          if (card === firstCard) return;
+          if (card.classList.contains("matched")) return;
+
+          if (!timerStarted) {
+            startTimer();
+            timerStarted = true;
+            tryPlayMusic();
+          }
+
+          flipCard(card);
+
+          if (!firstCard) {
+            firstCard = card;
+            return;
+          }
+
+          secondCard = card;
+          lockBoard = true;
+
+          checkForMatch();
+        });
+
+        return card;
+      }
+
+      // Flip card function
+      function flipCard(card) {
+        card.classList.add("flipped");
+        card.setAttribute("aria-pressed", "true");
+      }
+
+      // Unflip cards function
+      function unflipCards() {
+        setTimeout(() => {
+          [firstCard, secondCard].forEach(card => {
+            card.classList.remove("flipped");
+            card.setAttribute("aria-pressed", "false");
+          });
+          resetBoard();
+        }, 1000);
+      }
+
+      // Reset board variables
+      function resetBoard() {
+        [firstCard, secondCard] = [null, null];
+        lockBoard = false;
+      }
+
+      // Check if two flipped cards match
+      function checkForMatch() {
+        const isMatch = firstCard.dataset.backSrc === secondCard.dataset.backSrc;
+
+        if (isMatch) {
+          firstCard.classList.add("matched");
+          secondCard.classList.add("matched");
+          matchedPairs++;
+          message.textContent = "Waaah Kamu Hebat Banget 🎉";
+
+          // Remove aria-pressed and disable pointer events
+          firstCard.setAttribute("aria-label", `Matched image card: ${firstCard.querySelector(".back img").alt}`);
+          secondCard.setAttribute("aria-label", `Matched image card: ${secondCard.querySelector(".back img").alt}`);
+          firstCard.disabled = true;
+          secondCard.disabled = true;
+
+          resetBoard();
+
+          if (matchedPairs === cardsData.length) {
+            message.textContent = "🎊 wah... lagi bener nih... ";
+            endGame(true);
+          }
+        } else {
+          message.textContent = "Aduh Kamu salah nih!! ";
+          unflipCards();
+        }
+      }
+
+      // Timer update function
+      function updateTimer() {
+        if (timeLeft <= 0) {
+          endGame(false);
+          return;
+        }
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `Time Left: ${minutes.toString().padStart(2,"0")}:${seconds.toString().padStart(2,"0")}`;
+        timeLeft--;
+      }
+
+      // Start timer
+      function startTimer() {
+        timeLeft = 60;
+        timerDisplay.textContent = "Time Left: 01:00";
+        if (timer) clearInterval(timer);
+        timer = setInterval(updateTimer, 1000);
+      }
+
+      // End game function
+      function endGame(won) {
+        gameActive = false;
+        clearInterval(timer);
+        // Disable all cards
+        const allCards = gameBoard.querySelectorAll("button.card");
+        allCards.forEach(card => card.disabled = true);
+        if (won) {
+          message.textContent = "🎉 Hebat sekali kamu nak ku..........";
+          // Play win sound
+          loseSound.pause();
+          loseSound.currentTime = 0;
+          winSound.currentTime = 0;
+          winSound.play().catch(() => {});
+        } else {
+          // Show crying rain emoji for 2 seconds, then show final message with crying emoji
+          message.textContent = "😭🌧️😭🌧️😭🌧️😭🌧️😭🌧️";
+          // Flip all unmatched cards to show images
+          allCards.forEach(card => {
+            if (!card.classList.contains("matched")) {
+              card.classList.add("flipped");
+            }
+          });
+          // Play lose sound
+          winSound.pause();
+          winSound.currentTime = 0;
+          loseSound.currentTime = 0;
+          loseSound.play().catch(() => {});
+          setTimeout(() => {
+            message.textContent = "⏰ Aduh waktunya habis nih... 😢";
+          }, 2000);
+        }
+        // Pause background music when game ends
+        backgroundMusic.pause();
+        backgroundMusic.currentTime = 0;
+      }
+
+      // Initialize game board
+      function initGame() {
+        matchedPairs = 0;
+        message.textContent = "TEKAN GAMBAR UNTUK MEMULAI";
+        firstCard = null;
+        secondCard = null;
+        lockBoard = false;
+        gameBoard.innerHTML = "";
+        cardImages = shuffle(cardImages);
+        gameActive = true;
+        timerStarted = false;
+        timeLeft = 60;
+        timerDisplay.textContent = "Time Left: 01:00";
+        // Pause and reset music and sounds on restart
+        backgroundMusic.pause();
+        backgroundMusic.currentTime = 0;
+        winSound.pause();
+        winSound.currentTime = 0;
+        loseSound.pause();
+        loseSound.currentTime = 0;
+
+        cardImages.forEach((cardData, index) => {
+          const card = createCard(cardData, index);
+          gameBoard.appendChild(card);
+        });
+      }
+
+      restartBtn.addEventListener("click", () => {
+        initGame();
+      });
+
+      exitBtn.addEventListener("click", () => {
+        if (confirm("Are you sure you want to exit the game?")) {
+          window.location.href = "about:blank";
+        }
+      });
+
+      startGameBtn.addEventListener("click", () => {
+        introSection.classList.add("hidden");
+        gameSection.classList.remove("hidden");
+        initGame();
+      });
+
+      // Load Google Fonts Poppins
+      const link = document.createElement("link");
+      link.href = "https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap";
+      link.rel = "stylesheet";
+      document.head.appendChild(link);
+
+      link.onload = () => {
+        document.body.style.fontFamily = "'Poppins', sans-serif";
+      };
+    })();
+  </script>
+</body>
+</html>
